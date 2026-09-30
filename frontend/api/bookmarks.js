@@ -104,16 +104,16 @@ export default async function handler(req, res) {
       if (!isNonEmptyString(clientId)) {
         return res.status(400).json({ error: "clientId is required." });
       }
-      if (!isNonEmptyString(source) || !isNonEmptyString(target)) {
-        return res
-          .status(400)
-          .json({ error: "source and target are required." });
+      // A source word is always required; target is optional so a raw source
+      // word can be bookmarked on its own (stored with an empty target).
+      if (!isNonEmptyString(source)) {
+        return res.status(400).json({ error: "source is required." });
       }
 
       const doc = {
         clientId: clientId.trim(),
         source: source.trim(),
-        target: target.trim(),
+        target: isNonEmptyString(target) ? target.trim() : "",
         sourceLang: isNonEmptyString(sourceLang) ? sourceLang.trim() : "",
         targetLang: isNonEmptyString(targetLang) ? targetLang.trim() : "",
         createdAt: new Date().toISOString(),

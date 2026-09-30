@@ -1388,6 +1388,13 @@ function App() {
                           >
                             🔊
                           </button>
+
+                          {renderStar(
+                            word,
+                            "",
+                            sourceTranslationLanguage,
+                            ""
+                          )}
                         </div>
                       )
                     )}
@@ -1547,15 +1554,19 @@ function App() {
                             }
                           </span>
 
-                          <span className="arrow">
-                            →
-                          </span>
+                          {bookmark.target && (
+                            <>
+                              <span className="arrow">
+                                →
+                              </span>
 
-                          <span className="word-link target-word-link">
-                            {
-                              bookmark.target
-                            }
-                          </span>
+                              <span className="word-link target-word-link">
+                                {
+                                  bookmark.target
+                                }
+                              </span>
+                            </>
+                          )}
 
                           <button
                             type="button"
