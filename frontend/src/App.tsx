@@ -788,7 +788,8 @@ function App() {
    * Search a word's meaning.
    */
   function searchWordMeaning(
-    word: string
+    word: string,
+    inLanguageLabel?: string
   ) {
     const cleanWord =
       word.trim();
@@ -797,9 +798,14 @@ function App() {
       return;
     }
 
+    // e.g. "हर in English"; falls back to "<word> meaning".
+    const query = inLanguageLabel
+      ? `${cleanWord} in ${inLanguageLabel}`
+      : `${cleanWord} meaning`;
+
     const searchUrl =
       `https://www.google.com/search?q=${encodeURIComponent(
-        `${cleanWord} meaning`
+        query
       )}`;
 
     window.open(
@@ -1244,10 +1250,15 @@ function App() {
                             className="word-link"
                             onClick={() =>
                               searchWordMeaning(
-                                item.source
+                                item.source,
+                                getTranslationLanguageLabel(
+                                  targetLanguage
+                                )
                               )
                             }
-                            title="Search source word meaning"
+                            title={`Search "${item.source}" in ${getTranslationLanguageLabel(
+                              targetLanguage
+                            )}`}
                           >
                             {
                               item.source
@@ -1277,10 +1288,15 @@ function App() {
                             className="word-link target-word-link"
                             onClick={() =>
                               searchWordMeaning(
-                                item.target
+                                item.target,
+                                getTranslationLanguageLabel(
+                                  sourceTranslationLanguage
+                                )
                               )
                             }
-                            title="Search target word meaning"
+                            title={`Search "${item.target}" in ${getTranslationLanguageLabel(
+                              sourceTranslationLanguage
+                            )}`}
                           >
                             {
                               item.target
