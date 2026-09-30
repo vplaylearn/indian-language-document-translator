@@ -392,20 +392,98 @@ button:disabled {
   display: grid;
 
   grid-template-columns:
-    repeat(
-      2,
-      minmax(0, 1fr)
-    );
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    300px;
 
   gap: 24px;
 
   align-items: start;
 }
 
+/* When there is no sidebar the section only has the two result cards. */
+.results:not(:has(.bookmarks-sidebar)) {
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+}
+
 .results .card {
   min-width: 0;
 
   margin-bottom: 0;
+}
+
+/* =========================
+   BOOKMARKS SIDEBAR
+========================= */
+
+.bookmarks-sidebar {
+  position: sticky;
+
+  top: 16px;
+
+  align-self: start;
+
+  max-height: calc(100vh - 32px);
+
+  overflow-y: auto;
+}
+
+.bookmarks-sidebar h2 {
+  margin-top: 0;
+
+  color: #b45309;
+}
+
+.bookmark-group {
+  margin-bottom: 16px;
+}
+
+.bookmark-group-title {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  margin: 12px 0 8px;
+
+  font-size: 14px;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.04em;
+
+  color: #6b7280;
+}
+
+.bookmark-count {
+  background: #fde68a;
+
+  color: #92400e;
+
+  border-radius: 999px;
+
+  padding: 1px 8px;
+
+  font-size: 12px;
+
+  font-weight: 700;
+}
+
+.bookmark-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8px;
+}
+
+.bookmark-list .word-pair {
+  justify-content: space-between;
 }
 
 /* =========================
@@ -704,8 +782,27 @@ button:disabled {
    RESPONSIVE
 ========================= */
 
+@media (max-width: 1100px) {
+  /* Cards side by side, sidebar drops to a full-width row below. */
+  .results,
+  .results:not(:has(.bookmarks-sidebar)) {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr);
+  }
+
+  .bookmarks-sidebar {
+    grid-column: 1 / -1;
+
+    position: static;
+
+    max-height: none;
+  }
+}
+
 @media (max-width: 900px) {
-  .results {
+  .results,
+  .results:not(:has(.bookmarks-sidebar)) {
     grid-template-columns: 1fr;
   }
 

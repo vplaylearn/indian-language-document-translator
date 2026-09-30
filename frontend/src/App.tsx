@@ -1017,6 +1017,37 @@ function App() {
     ];
 
   /*
+   * Group saved words by their source language, so the sidebar shows
+   * one section per language (Hindi, Tamil, ...). Unknown/blank codes
+   * fall into an "Other" bucket.
+   */
+  const groupedBookmarks = (() => {
+    const groups = new Map<
+      string,
+      { lang: string; label: string; items: Bookmark[] }
+    >();
+
+    for (const bookmark of bookmarks) {
+      const lang = bookmark.sourceLang || "other";
+      const label = bookmark.sourceLang
+        ? getTranslationLanguageLabel(
+            bookmark.sourceLang as TranslationLanguage
+          )
+        : "Other";
+
+      if (!groups.has(lang)) {
+        groups.set(lang, { lang, label, items: [] });
+      }
+
+      groups.get(lang)!.items.push(bookmark);
+    }
+
+    return Array.from(groups.values()).sort((a, b) =>
+      a.label.localeCompare(b.label)
+    );
+  })();
+
+  /*
    * Star button that toggles a bookmark for a source/target word pair.
    */
   function renderStar(
@@ -1298,7 +1329,8 @@ function App() {
         {(ocrText ||
           translation ||
           wordTranslations.length >
-            0) && (
+            0 ||
+          bookmarks.length > 0) && (
           <section className="results">
             <div className="card result-card">
               <div className="result-heading">
@@ -1534,67 +1566,83 @@ function App() {
                   </div>
                 </div>
               )}
+            </div>
 
-              {bookmarks.length > 0 && (
-                <div className="word-section saved-words">
-                  <h3>
-                    ★ Saved Words
-                  </h3>
+            {bookmarks.length > 0 && (
+              <aside className="card bookmarks-sidebar">
+                <h2>
+                  ★ Saved Words
+                </h2>
 
-                  <div className="word-line">
-                    {bookmarks.map(
-                      (bookmark) => (
-                        <div
-                          className="word-pair saved-word-pair"
-                          key={bookmark.id}
-                        >
-                          <span className="word-link">
-                            {
-                              bookmark.source
-                            }
-                          </span>
+                {groupedBookmarks.map(
+                  (group) => (
+                    <div
+                      className="bookmark-group"
+                      key={group.lang}
+                    >
+                      <h3 className="bookmark-group-title">
+                        {group.label}
+                        <span className="bookmark-count">
+                          {group.items.length}
+                        </span>
+                      </h3>
 
-                          {bookmark.target && (
-                            <>
-                              <span className="arrow">
-                                →
-                              </span>
-
-                              <span className="word-link target-word-link">
+                      <div className="bookmark-list">
+                        {group.items.map(
+                          (bookmark) => (
+                            <div
+                              className="word-pair saved-word-pair"
+                              key={bookmark.id}
+                            >
+                              <span className="word-link">
                                 {
-                                  bookmark.target
+                                  bookmark.source
                                 }
                               </span>
-                            </>
-                          )}
 
-                          <button
-                            type="button"
-                            className="word-star is-saved"
-                            onClick={() =>
-                              toggleBookmark(
-                                bookmark.source,
-                                bookmark.target,
-                                bookmark.sourceLang,
-                                bookmark.targetLang
-                              )
-                            }
-                            disabled={bookmarkBusy.has(
-                              bookmarkKey(
-                                bookmark
-                              )
-                            )}
-                            title="Remove bookmark"
-                          >
-                            ★
-                          </button>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+                              {bookmark.target && (
+                                <>
+                                  <span className="arrow">
+                                    →
+                                  </span>
+
+                                  <span className="word-link target-word-link">
+                                    {
+                                      bookmark.target
+                                    }
+                                  </span>
+                                </>
+                              )}
+
+                              <button
+                                type="button"
+                                className="word-star is-saved"
+                                onClick={() =>
+                                  toggleBookmark(
+                                    bookmark.source,
+                                    bookmark.target,
+                                    bookmark.sourceLang,
+                                    bookmark.targetLang
+                                  )
+                                }
+                                disabled={bookmarkBusy.has(
+                                  bookmarkKey(
+                                    bookmark
+                                  )
+                                )}
+                                title="Remove bookmark"
+                              >
+                                ★
+                              </button>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )
+                )}
+              </aside>
+            )}
           </section>
         )}
       </main>
