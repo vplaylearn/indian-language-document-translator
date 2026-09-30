@@ -742,12 +742,26 @@ function App() {
     utterance.onerror = (
       event
     ) => {
+      onEnd?.();
+
+      /*
+       * Stopping playback (Stop button, starting a new
+       * utterance, or unmount) fires onerror with
+       * "interrupted"/"canceled". That is expected, not a
+       * failure, so don't surface an error for it.
+       */
+      if (
+        event.error ===
+          "interrupted" ||
+        event.error === "canceled"
+      ) {
+        return;
+      }
+
       console.error(
         "Speech synthesis error:",
         event
       );
-
-      onEnd?.();
 
       setStatus(
         `Unable to read the text. Browser voice for ${ttsLanguage} may not be available.`
@@ -809,6 +823,8 @@ function App() {
     }
 
     setIsSourceSpeaking(false);
+
+    setStatus("");
   }
 
   /*
