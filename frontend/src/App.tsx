@@ -1203,8 +1203,9 @@ function App() {
 
             {bookmarksOpen && (
               <div
-                className="bookmarks-panel"
+                className="bookmarks-drawer"
                 role="dialog"
+                aria-modal="true"
                 aria-label="Saved words"
               >
                 <div className="bookmarks-panel-header">
@@ -1243,6 +1244,7 @@ function App() {
                   />
                 )}
 
+                <div className="bookmarks-groups">
                 {bookmarks.length ===
                 0 ? (
                   <p className="bookmarks-empty">
@@ -1375,6 +1377,7 @@ function App() {
                     )
                   )
                 )}
+                </div>
               </div>
             )}
           </div>
