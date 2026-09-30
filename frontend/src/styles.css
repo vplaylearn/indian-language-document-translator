@@ -4,11 +4,14 @@
 
 body {
   margin: 0;
+
   font-family:
     Arial,
     Helvetica,
     sans-serif;
+
   background: #f5f7fb;
+
   color: #1f2937;
 }
 
@@ -24,58 +27,80 @@ button {
 
 button:disabled {
   cursor: not-allowed;
+
   opacity: 0.6;
 }
 
-/* -----------------------------
-   App
------------------------------- */
+/* =========================
+   APP
+========================= */
 
 .app {
   min-height: 100vh;
 }
 
+/* =========================
+   HEADER
+========================= */
+
 .app-header {
   background: #1f2937;
+
   color: white;
+
   padding: 24px 20px;
 }
 
 .app-header h1 {
   margin: 0 0 8px;
+
   font-size: 28px;
 }
 
 .app-header p {
   margin: 0;
+
   color: #d1d5db;
+
+  font-size: 15px;
 }
 
-/* -----------------------------
-   Container
------------------------------- */
+/* =========================
+   CONTAINER
+========================= */
 
 .container {
-  width: min(1100px, 94%);
+  width: min(
+    1200px,
+    94%
+  );
+
   margin: 24px auto 50px;
 }
 
-/* -----------------------------
-   Card
------------------------------- */
+/* =========================
+   CARD
+========================= */
 
 .card {
   background: white;
+
   border: 1px solid #e5e7eb;
+
   border-radius: 10px;
+
   padding: 20px;
+
   margin-bottom: 20px;
+
   box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.05);
+    0 2px 8px
+      rgba(0, 0, 0, 0.05);
 }
 
 .card h2 {
   margin: 0 0 18px;
+
   font-size: 20px;
 }
 
@@ -83,45 +108,58 @@ button:disabled {
   margin: 0 0 10px;
 }
 
-/* -----------------------------
-   Language Controls
------------------------------- */
+/* =========================
+   LANGUAGE CONTROLS
+========================= */
 
 .language-controls {
   display: grid;
+
   grid-template-columns:
     minmax(0, 1fr)
     auto
     minmax(0, 1fr);
 
   align-items: end;
+
   gap: 16px;
 }
 
 .field {
   display: flex;
+
   flex-direction: column;
+
   gap: 7px;
 }
 
 .field label {
   font-weight: 600;
+
   font-size: 14px;
 }
 
 .field select {
   width: 100%;
+
   padding: 10px 12px;
+
   border: 1px solid #cbd5e1;
+
   border-radius: 7px;
+
   background: white;
+
+  color: #111827;
 }
 
 .swap-button {
   width: 44px;
+
   height: 42px;
 
   border: 1px solid #cbd5e1;
+
   border-radius: 7px;
 
   background: white;
@@ -133,13 +171,15 @@ button:disabled {
   background: #f3f4f6;
 }
 
-/* -----------------------------
-   Buttons
------------------------------- */
+/* =========================
+   ACTION BUTTONS
+========================= */
 
 .action-buttons {
   display: flex;
+
   flex-wrap: wrap;
+
   gap: 10px;
 }
 
@@ -147,13 +187,17 @@ button:disabled {
 .secondary-button,
 .clear-button {
   border: none;
+
   border-radius: 7px;
+
   padding: 10px 16px;
+
   font-weight: 600;
 }
 
 .primary-button {
   background: #2563eb;
+
   color: white;
 }
 
@@ -163,6 +207,7 @@ button:disabled {
 
 .secondary-button {
   background: #e5e7eb;
+
   color: #111827;
 }
 
@@ -172,6 +217,7 @@ button:disabled {
 
 .clear-button {
   background: #fee2e2;
+
   color: #991b1b;
 }
 
@@ -179,19 +225,23 @@ button:disabled {
   background: #fecaca;
 }
 
-/* -----------------------------
-   Read & Translate
------------------------------- */
+/* =========================
+   READ & TRANSLATE
+========================= */
 
 .read-translate-container {
   margin-top: 22px;
+
   display: flex;
+
   justify-content: center;
 }
 
 .read-translate-button {
   display: inline-flex;
+
   align-items: center;
+
   justify-content: center;
 
   min-width: 240px;
@@ -199,16 +249,20 @@ button:disabled {
   padding: 14px 24px;
 
   border: none;
+
   border-radius: 8px;
 
   background: #2563eb;
+
   color: white;
 
   font-size: 17px;
+
   font-weight: 700;
 
   box-shadow:
-    0 3px 8px rgba(0, 0, 0, 0.18);
+    0 3px 8px
+      rgba(0, 0, 0, 0.18);
 }
 
 .read-translate-button:hover {
@@ -219,9 +273,9 @@ button:disabled {
   background: #93c5fd;
 }
 
-/* -----------------------------
-   Image Preview
------------------------------- */
+/* =========================
+   IMAGE PREVIEW
+========================= */
 
 .image-preview {
   margin-top: 20px;
@@ -236,10 +290,8 @@ button:disabled {
 
   width: auto;
 
-  /*
-   * Prevent huge images.
-   */
   max-width: 100%;
+
   max-height: 380px;
 
   object-fit: contain;
@@ -247,14 +299,15 @@ button:disabled {
   margin: 0 auto;
 
   border: 1px solid #d1d5db;
+
   border-radius: 8px;
 
   background: #f8fafc;
 }
 
-/* -----------------------------
-   Camera
------------------------------- */
+/* =========================
+   CAMERA
+========================= */
 
 .camera-container {
   margin-top: 20px;
@@ -264,7 +317,9 @@ button:disabled {
   display: block;
 
   width: 100%;
+
   max-width: 700px;
+
   max-height: 500px;
 
   margin: 0 auto;
@@ -278,18 +333,21 @@ button:disabled {
 
 .camera-actions {
   display: flex;
+
   gap: 10px;
 
   margin-top: 12px;
 }
 
-/* -----------------------------
-   Status
------------------------------- */
+/* =========================
+   STATUS
+========================= */
 
 .status {
   display: flex;
+
   align-items: center;
+
   gap: 10px;
 
   padding: 12px 16px;
@@ -299,6 +357,7 @@ button:disabled {
   background: #eff6ff;
 
   border: 1px solid #bfdbfe;
+
   border-radius: 8px;
 
   color: #1e40af;
@@ -306,14 +365,17 @@ button:disabled {
 
 .spinner {
   width: 16px;
+
   height: 16px;
 
   border: 2px solid #93c5fd;
+
   border-top-color: #2563eb;
 
   border-radius: 50%;
 
-  animation: spin 0.8s linear infinite;
+  animation:
+    spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -322,43 +384,33 @@ button:disabled {
   }
 }
 
-/* -----------------------------
-   Results
------------------------------- */
+/* =========================
+   RESULTS
+========================= */
 
 .results {
   display: grid;
 
   grid-template-columns:
-    repeat(2, minmax(0, 1fr));
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
 
-  gap: 20px;
+  gap: 24px;
+
+  align-items: start;
 }
 
 .results .card {
+  min-width: 0;
+
   margin-bottom: 0;
 }
 
-textarea {
-  width: 100%;
-
-  resize: vertical;
-
-  min-height: 150px;
-
-  padding: 12px;
-
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-
-  background: #f8fafc;
-
-  line-height: 1.6;
-}
-
-/* -----------------------------
-   Result Heading
------------------------------- */
+/* =========================
+   RESULT HEADING
+========================= */
 
 .result-heading {
   display: flex;
@@ -369,16 +421,127 @@ textarea {
 
   gap: 12px;
 
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .result-heading h2 {
   margin: 0;
+
+  font-size: 22px;
 }
 
-/* -----------------------------
-   Sentence TTS
------------------------------- */
+/* =========================
+   LARGE TEXT AREAS
+========================= */
+
+.results textarea {
+  display: block;
+
+  width: 100%;
+
+  min-height: 320px;
+
+  resize: vertical;
+
+  padding: 16px;
+
+  border: 1px solid #cbd5e1;
+
+  border-radius: 8px;
+
+  background: #f8fafc;
+
+  color: #111827;
+
+  font-size: 18px;
+
+  line-height: 1.8;
+
+  font-family:
+    Arial,
+    "Noto Sans",
+    sans-serif;
+}
+
+.results textarea:focus {
+  outline: none;
+
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 2px
+      rgba(37, 99, 235, 0.12);
+}
+
+/* =========================
+   RESULT INFO
+========================= */
+
+.result-info {
+  margin-top: 9px;
+
+  font-size: 13px;
+
+  color: #64748b;
+}
+
+/* =========================
+   TTS CONTROLS
+========================= */
+
+.tts-controls {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+}
+
+.tts-start-button,
+.tts-stop-button {
+  border: none;
+
+  border-radius: 6px;
+
+  padding: 7px 12px;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.tts-start-button {
+  background: #2563eb;
+
+  color: white;
+}
+
+.tts-start-button:hover {
+  background: #1d4ed8;
+}
+
+.tts-stop-button {
+  background: #dc2626;
+
+  color: white;
+}
+
+.tts-stop-button:hover {
+  background: #b91c1c;
+}
+
+.tts-start-button:disabled,
+.tts-stop-button:disabled {
+  opacity: 0.45;
+
+  cursor: not-allowed;
+}
+
+/* =========================
+   TRANSLATION TTS
+========================= */
 
 .tts-button {
   display: inline-flex;
@@ -404,21 +567,9 @@ textarea {
   background: #f3f4f6;
 }
 
-/* -----------------------------
-   Result Info
------------------------------- */
-
-.result-info {
-  margin-top: 8px;
-
-  font-size: 13px;
-
-  color: #64748b;
-}
-
-/* -----------------------------
-   Word Translation
------------------------------- */
+/* =========================
+   WORD TRANSLATION
+========================= */
 
 .word-translation {
   margin-top: 20px;
@@ -429,9 +580,17 @@ textarea {
 }
 
 .word-translation h3 {
-  margin: 0 0 12px;
+  margin: 0 0 6px;
 
   font-size: 18px;
+}
+
+.word-help {
+  margin: 0 0 14px;
+
+  color: #64748b;
+
+  font-size: 13px;
 }
 
 .word-line {
@@ -439,7 +598,7 @@ textarea {
 
   flex-wrap: wrap;
 
-  gap: 9px;
+  gap: 10px;
 
   line-height: 1.8;
 }
@@ -451,7 +610,7 @@ textarea {
 
   gap: 5px;
 
-  padding: 6px 9px;
+  padding: 7px 10px;
 
   border-radius: 7px;
 
@@ -459,20 +618,51 @@ textarea {
 
   border: 1px solid #e5e7eb;
 
-  font-size: 16px;
+  font-size: 17px;
 }
 
-.source-word {
+/* =========================
+   WORD SEARCH LINKS
+========================= */
+
+.word-link {
+  border: none;
+
+  background: transparent;
+
+  padding: 0;
+
+  color: #2563eb;
+
+  font-size: 17px;
+
   font-weight: 600;
+
+  text-decoration:
+    underline;
+
+  text-decoration-thickness: 1px;
+
+  text-underline-offset: 3px;
+
+  cursor: pointer;
 }
 
-.arrow {
-  color: #64748b;
+.word-link:hover {
+  color: #1d4ed8;
 }
 
-.target-word {
+.target-word-link {
   color: #374151;
 }
+
+.target-word-link:hover {
+  color: #111827;
+}
+
+/* =========================
+   WORD TTS
+========================= */
 
 .word-tts-button {
   border: none;
@@ -492,23 +682,39 @@ textarea {
   transform: scale(1.15);
 }
 
-/* -----------------------------
-   Translate Again
------------------------------- */
+/* =========================
+   ARROW
+========================= */
+
+.arrow {
+  color: #64748b;
+
+  font-weight: 500;
+}
+
+/* =========================
+   MANUAL TRANSLATION
+========================= */
 
 .translate-form {
   margin-top: 18px;
 }
 
-/* -----------------------------
-   Mobile
------------------------------- */
+/* =========================
+   RESPONSIVE
+========================= */
 
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .results {
     grid-template-columns: 1fr;
   }
 
+  .results textarea {
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 800px) {
   .language-controls {
     grid-template-columns: 1fr;
   }
@@ -516,11 +722,19 @@ textarea {
   .swap-button {
     justify-self: center;
   }
+
+  .camera-video {
+    max-height: 400px;
+  }
 }
 
 @media (max-width: 600px) {
   .app-header h1 {
     font-size: 23px;
+  }
+
+  .app-header p {
+    font-size: 14px;
   }
 
   .container {
@@ -531,11 +745,33 @@ textarea {
     padding: 16px;
   }
 
+  .results textarea {
+    min-height: 250px;
+
+    font-size: 17px;
+
+    line-height: 1.7;
+  }
+
   .image-preview img {
     max-height: 300px;
   }
 
+  .result-heading {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .tts-controls {
+    width: 100%;
+  }
+
   .word-pair {
+    font-size: 14px;
+  }
+
+  .word-link {
     font-size: 14px;
   }
 }

@@ -1,83 +1,42 @@
-
 import {
   ChangeEvent,
+  FormEvent,
   useEffect,
   useRef,
   useState,
 } from "react";
-import type { FormEvent } from "react";
 import { createWorker, PSM } from "tesseract.js";
 import "./styles.css";
 
-type Language =
-  | "eng"
-  | "hin"
-  | "tam"
-  | "tel"
-  | "kan";
+type Language = "eng" | "hin" | "tam" | "tel" | "kan";
 
-type TranslationLanguage =
-  | "en"
-  | "hi"
-  | "ta"
-  | "te"
-  | "kn";
+type TranslationLanguage = "en" | "hi" | "ta" | "te" | "kn";
 
 type WordTranslation = {
   source: string;
   target: string;
 };
 
-const OCR_LANGUAGES: {
-  value: Language;
+const LANGUAGES: Array<{
+  code: Language;
   label: string;
-}[] = [
-  {
-    value: "eng",
-    label: "English",
-  },
-  {
-    value: "hin",
-    label: "Hindi",
-  },
-  {
-    value: "tam",
-    label: "Tamil",
-  },
-  {
-    value: "tel",
-    label: "Telugu",
-  },
-  {
-    value: "kan",
-    label: "Kannada",
-  },
+}> = [
+  { code: "eng", label: "English" },
+  { code: "hin", label: "Hindi" },
+  { code: "tam", label: "Tamil" },
+  { code: "tel", label: "Telugu" },
+  { code: "kan", label: "Kannada" },
 ];
 
-const TRANSLATION_LANGUAGES: {
-  value: TranslationLanguage;
+const TRANSLATION_LANGUAGES: Array<{
+  code: TranslationLanguage;
   label: string;
-}[] = [
-  {
-    value: "en",
-    label: "English",
-  },
-  {
-    value: "hi",
-    label: "Hindi",
-  },
-  {
-    value: "ta",
-    label: "Tamil",
-  },
-  {
-    value: "te",
-    label: "Telugu",
-  },
-  {
-    value: "kn",
-    label: "Kannada",
-  },
+}> = [
+  { code: "en", label: "English" },
+  { code: "hi", label: "Hindi" },
+  { code: "ta", label: "Tamil" },
+  { code: "te", label: "Telugu" },
+  { code: "kn", label: "Kannada" },
 ];
 
 const OCR_TO_TRANSLATION: Record<
@@ -104,6 +63,41 @@ const TTS_LANGUAGES: Record<
 
 const TRANSLATION_API = "/api/translate";
 
+function getLanguageLabel(language: Language): string {
+  return (
+    LANGUAGES.find(
+      (item) => item.code === language
+    )?.label ?? language
+  );
+}
+
+function getTranslationLanguageLabel(
+  language: TranslationLanguage
+): string {
+  return (
+    TRANSLATION_LANGUAGES.find(
+      (item) => item.code === language
+    )?.label ?? language
+  );
+}
+
+function normalizeWord(word: string): string {
+  return word
+    .trim()
+    .replace(
+      /^[.,!?;:"'()[\]{}<>]+|[.,!?;:"'()[\]{}<>]+$/g,
+      ""
+    )
+    .trim();
+}
+
+function getWords(text: string): string[] {
+  return text
+    .split(/\s+/)
+    .map(normalizeWord)
+    .filter(Boolean);
+}
+
 function App() {
   const [sourceLanguage, setSourceLanguage] =
     useState<Language>("hin");
@@ -112,28 +106,34 @@ function App() {
     useState<TranslationLanguage>("en");
 
   const [imageUrl, setImageUrl] =
-    useState("");
+    useState<string>("");
 
   const [selectedFile, setSelectedFile] =
     useState<File | null>(null);
 
   const [ocrText, setOcrText] =
-    useState("");
+    useState<string>("");
 
   const [translation, setTranslation] =
-    useState("");
+    useState<string>("");
 
   const [wordTranslations, setWordTranslations] =
     useState<WordTranslation[]>([]);
 
   const [status, setStatus] =
-    useState("");
+    useState<string>("");
 
   const [isProcessing, setIsProcessing] =
-    useState(false);
+    useState<boolean>(false);
 
   const [cameraOpen, setCameraOpen] =
-    useState(false);
+    useState<boolean>(false);
+
+  const [isSourceSpeaking, setIsSourceSpeaking] =
+    useState<boolean>(false);
+
+  const [isTranslationSpeaking, setIsTranslationSpeaking] =
+    useState<boolean>(false);
 
   const fileInputRef =
     useRef<HTMLInputElement | null>(null);
@@ -144,94 +144,173 @@ function App() {
   const canvasRef =
     useRef<HTMLCanvasElement | null>(null);
 
-  const streamRef =
+  const cameraStreamRef =
     useRef<MediaStream | null>(null);
 
   useEffect(() => {
     return () => {
       window.speechSynthesis?.cancel();
-      stopCamera();
+
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current
+          .getTracks()
+          .forEach((track) => track.stop());
+      }
+
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
     };
-  }, []);
+  }, [imageUrl]);
 
-  function stopCamera() {
-    if (streamRef.current) {
-      streamRef.current
-        .getTracks()
-        .forEach((track) => track.stop());
-
-      streamRef.current = null;
-    }
-
-    setCameraOpen(false);
-  }
-
-  function speak(
-    text: string,
-    language: TranslationLanguage
-  ) {
-    if (!text.trim()) {
+  /*
+   * Load browser speech voices.
+   *
+   * Chrome/Edge may initially return an empty
+   * voice list and populate it later through
+   * the voiceschanged event.
+   */
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) {
       return;
     }
 
+    const loadVoices = () => {
+      const voices =
+        window.speechSynthesis.getVoices();
+
+      console.log(
+        "Available speech voices:",
+        voices.map((voice) => ({
+          name: voice.name,
+          lang: voice.lang,
+          localService: voice.localService,
+        }))
+      );
+    };
+
+    loadVoices();
+
+    window.speechSynthesis.addEventListener(
+      "voiceschanged",
+      loadVoices
+    );
+
+    return () => {
+      window.speechSynthesis.removeEventListener(
+        "voiceschanged",
+        loadVoices
+      );
+    };
+  }, []);
+
+  /*
+   * Find the best browser voice for a language.
+   */
+  function getVoice(
+    language: TranslationLanguage
+  ): SpeechSynthesisVoice | undefined {
     if (!("speechSynthesis" in window)) {
+      return undefined;
+    }
+
+    const voices =
+      window.speechSynthesis.getVoices();
+
+    const targetLang =
+      TTS_LANGUAGES[language].toLowerCase();
+
+    /*
+     * First try exact match:
+     * hi-IN
+     * ta-IN
+     * te-IN
+     * kn-IN
+     * en-IN
+     */
+    const exactVoice = voices.find(
+      (voice) =>
+        voice.lang.toLowerCase() ===
+        targetLang
+    );
+
+    if (exactVoice) {
+      return exactVoice;
+    }
+
+    /*
+     * Then try language prefix:
+     * hi
+     * ta
+     * te
+     * kn
+     * en
+     */
+    const languagePrefix =
+      language.toLowerCase();
+
+    const prefixVoice = voices.find(
+      (voice) =>
+        voice.lang
+          .toLowerCase()
+          .startsWith(languagePrefix)
+    );
+
+    if (prefixVoice) {
+      return prefixVoice;
+    }
+
+    return undefined;
+  }
+
+  function handleFileChange(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
       setStatus(
-        "Text-to-speech is not supported by this browser."
+        "Please select an image file."
       );
       return;
     }
 
-    window.speechSynthesis.cancel();
+    if (imageUrl) {
+      URL.revokeObjectURL(imageUrl);
+    }
 
-    const utterance =
-      new SpeechSynthesisUtterance(text);
+    const url =
+      URL.createObjectURL(file);
 
-    utterance.lang =
-      TTS_LANGUAGES[language];
+    setSelectedFile(file);
+    setImageUrl(url);
 
-    utterance.rate = 0.85;
-    utterance.pitch = 1;
-    utterance.volume = 1;
+    setOcrText("");
+    setTranslation("");
+    setWordTranslations([]);
 
-    window.speechSynthesis.speak(
-      utterance
+    setStatus(
+      "Image selected. Click Read & Translate."
     );
   }
 
-  function speakSourceText() {
-    if (!ocrText.trim()) {
-      return;
-    }
-
-    const source =
-      OCR_TO_TRANSLATION[
-        sourceLanguage
-      ];
-
-    speak(ocrText, source);
-  }
-
-  function speakTranslation() {
-    if (!translation.trim()) {
-      return;
-    }
-
-    speak(
-      translation,
-      targetLanguage
-    );
-  }
-
-  function speakWord(
-    word: string,
-    language: TranslationLanguage
-  ) {
-    speak(word, language);
+  function openFilePicker() {
+    fileInputRef.current?.click();
   }
 
   async function openCamera() {
     try {
-      setStatus("Opening camera...");
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setStatus(
+          "Camera access is not supported by this browser."
+        );
+        return;
+      }
 
       const stream =
         await navigator.mediaDevices.getUserMedia({
@@ -241,18 +320,19 @@ function App() {
           audio: false,
         });
 
-      streamRef.current = stream;
+      cameraStreamRef.current = stream;
+
       setCameraOpen(true);
 
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject =
-            stream;
-        }
-      }, 100);
+      if (videoRef.current) {
+        videoRef.current.srcObject =
+          stream;
+
+        await videoRef.current.play();
+      }
 
       setStatus(
-        "Camera ready. Position the document and capture."
+        "Camera opened. Capture an image."
       );
     } catch (error) {
       console.error(
@@ -261,17 +341,31 @@ function App() {
       );
 
       setStatus(
-        "Unable to access camera. Please check browser permissions."
+        "Unable to access the camera. Please allow camera permission."
       );
     }
   }
 
-  async function captureImage() {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
+  function closeCamera() {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current
+        .getTracks()
+        .forEach((track) => track.stop());
+
+      cameraStreamRef.current = null;
+    }
+
+    setCameraOpen(false);
+  }
+
+  function captureImage() {
+    const video =
+      videoRef.current;
+
+    const canvas =
+      canvasRef.current;
 
     if (!video || !canvas) {
-      setStatus("Camera is not ready.");
       return;
     }
 
@@ -280,21 +374,21 @@ function App() {
       video.videoHeight === 0
     ) {
       setStatus(
-        "Camera image is not ready yet."
+        "Camera is not ready yet."
       );
       return;
     }
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width =
+      video.videoWidth;
+
+    canvas.height =
+      video.videoHeight;
 
     const context =
       canvas.getContext("2d");
 
     if (!context) {
-      setStatus(
-        "Unable to capture camera image."
-      );
       return;
     }
 
@@ -306,141 +400,94 @@ function App() {
       canvas.height
     );
 
-    const blob =
-      await new Promise<Blob | null>(
-        (resolve) => {
-          canvas.toBlob(
-            (result) =>
-              resolve(result),
-            "image/jpeg",
-            0.92
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          setStatus(
+            "Unable to capture image."
           );
+          return;
         }
-      );
 
-    if (!blob) {
-      setStatus(
-        "Unable to create image."
-      );
-      return;
-    }
+        const file =
+          new File(
+            [blob],
+            `camera-${Date.now()}.jpg`,
+            {
+              type: "image/jpeg",
+            }
+          );
 
-    const file = new File(
-      [blob],
-      "camera-capture.jpg",
-      {
-        type: "image/jpeg",
-      }
-    );
+        if (imageUrl) {
+          URL.revokeObjectURL(imageUrl);
+        }
 
-    setSelectedFile(file);
+        const url =
+          URL.createObjectURL(file);
 
-    const url =
-      URL.createObjectURL(blob);
+        setSelectedFile(file);
+        setImageUrl(url);
 
-    setImageUrl((previous) => {
-      if (previous) {
-        URL.revokeObjectURL(previous);
-      }
+        setOcrText("");
+        setTranslation("");
+        setWordTranslations([]);
 
-      return url;
-    });
+        setStatus(
+          "Image captured. Click Read & Translate."
+        );
 
-    stopCamera();
-
-    setStatus(
-      "Image captured. Click Read & Translate."
+        closeCamera();
+      },
+      "image/jpeg",
+      0.92
     );
   }
 
-  async function handleImageUpload(
-    event: ChangeEvent<HTMLInputElement>
-  ) {
-    const file =
-      event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    if (
-      !file.type.startsWith("image/")
-    ) {
-      setStatus(
-        "Please select an image file."
-      );
-      return;
-    }
-
-    setSelectedFile(file);
-
-    const url =
-      URL.createObjectURL(file);
-
-    setImageUrl((previous) => {
-      if (previous) {
-        URL.revokeObjectURL(previous);
-      }
-
-      return url;
-    });
-
-    setOcrText("");
-    setTranslation("");
-    setWordTranslations([]);
+  async function performOCR(
+    file: File
+  ): Promise<string> {
+    const language =
+      sourceLanguage;
 
     setStatus(
-      "Image loaded. Click Read & Translate."
+      `Reading ${getLanguageLabel(
+        language
+      )} text from image...`
     );
 
-    event.target.value = "";
+    /*
+     * Tesseract worker.
+     */
+    const worker =
+      await createWorker(language);
+
+    try {
+      await worker.setParameters({
+        tessedit_pageseg_mode:
+          PSM.AUTO,
+      });
+
+      const result =
+        await worker.recognize(file);
+
+      const detectedText =
+        result.data.text.trim();
+
+      return detectedText;
+    } finally {
+      await worker.terminate();
+    }
   }
 
   async function translateText(
     text: string
-  ): Promise<string> {
-    const cleanedText =
-      text.trim();
-
-    if (!cleanedText) {
-      setTranslation("");
-      setWordTranslations([]);
-      return "";
-    }
-
-    const source =
-      OCR_TO_TRANSLATION[
-        sourceLanguage
-      ];
-
-    const target =
-      targetLanguage;
-
-    if (source === target) {
-      const words =
-        cleanedText.match(
-          /[\p{L}\p{M}\p{N}]+/gu
-        ) || [];
-
-      const sameLanguageWords =
-        words.map((word) => ({
-          source: word,
-          target: word,
-        }));
-
-      setWordTranslations(
-        sameLanguageWords
-      );
-
-      setTranslation(
-        cleanedText
-      );
-
-      return cleanedText;
-    }
-
+  ) {
     setStatus(
-      "Translating detected text..."
+      `Translating ${getLanguageLabel(
+        sourceLanguage
+      )} → ${getTranslationLanguageLabel(
+        targetLanguage
+      )}...`
     );
 
     const response =
@@ -453,150 +500,45 @@ function App() {
               "application/json",
           },
           body: JSON.stringify({
-            text: cleanedText,
-            source,
-            target,
+            text,
+            source:
+              OCR_TO_TRANSLATION[
+                sourceLanguage
+              ],
+            target:
+              targetLanguage,
           }),
         }
       );
 
-    let data: {
-      translation?: string;
-      words?: WordTranslation[];
-      error?: string;
-    };
-
-    try {
-      data =
-        await response.json();
-    } catch {
-      throw new Error(
-        "Invalid response from translation server."
-      );
-    }
+    const data =
+      await response.json();
 
     if (!response.ok) {
       throw new Error(
-        data.error ||
-          "Translation request failed."
+        data?.error ||
+          `Translation failed with HTTP ${response.status}`
       );
     }
-
-    setWordTranslations(
-      data.words || []
-    );
 
     setTranslation(
       data.translation || ""
     );
 
-    return (
-      data.translation || ""
+    setWordTranslations(
+      Array.isArray(data.words)
+        ? data.words
+        : []
     );
+
+    return data;
   }
 
-  async function performOCR(
-    file: File
+  async function handleReadAndTranslate(
+    event?: FormEvent
   ) {
-    setIsProcessing(true);
+    event?.preventDefault();
 
-    setStatus(
-      "Preparing OCR..."
-    );
-
-    setOcrText("");
-    setTranslation("");
-    setWordTranslations([]);
-
-    let worker:
-      | Awaited<
-          ReturnType<typeof createWorker>
-        >
-      | null = null;
-
-    try {
-      const language =
-        sourceLanguage;
-
-      setStatus(
-        `Loading ${getLanguageLabel(
-          sourceLanguage
-        )} OCR model...`
-      );
-
-      worker =
-        await createWorker(
-          language
-        );
-
-      await worker.setParameters({
-        tessedit_pageseg_mode:
-          PSM.AUTO,
-      });
-
-      setStatus(
-        "Reading text from image..."
-      );
-
-      const result =
-        await worker.recognize(
-          file
-        );
-
-      const detectedText =
-        result.data.text.trim();
-
-      setOcrText(
-        detectedText
-      );
-
-      if (!detectedText) {
-        setStatus(
-          "No readable text was detected."
-        );
-
-        return;
-      }
-
-      setStatus(
-        "Text detected. Translating..."
-      );
-
-      await translateText(
-        detectedText
-      );
-
-      setStatus(
-        "OCR and translation completed."
-      );
-    } catch (error) {
-      console.error(
-        "OCR/translation error:",
-        error
-      );
-
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : "OCR failed."
-      );
-    } finally {
-      if (worker) {
-        try {
-          await worker.terminate();
-        } catch (error) {
-          console.error(
-            "Failed to terminate OCR worker:",
-            error
-          );
-        }
-      }
-
-      setIsProcessing(false);
-    }
-  }
-
-  async function handleReadAndTranslate() {
     if (!selectedFile) {
       setStatus(
         "Please upload or capture an image first."
@@ -604,213 +546,378 @@ function App() {
       return;
     }
 
-    await performOCR(
-      selectedFile
-    );
-  }
+    setIsProcessing(true);
 
-  function selectImage() {
-    fileInputRef.current?.click();
-  }
-
-  function clearAll() {
-    stopCamera();
-
-    window.speechSynthesis?.cancel();
-
-    setSelectedFile(null);
     setOcrText("");
     setTranslation("");
     setWordTranslations([]);
-    setStatus("");
-
-    setImageUrl((previous) => {
-      if (previous) {
-        URL.revokeObjectURL(previous);
-      }
-
-      return "";
-    });
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }
-
-  function swapLanguages() {
-    const currentSource =
-      OCR_TO_TRANSLATION[
-        sourceLanguage
-      ];
-
-    const newSourceLanguage =
-      Object.entries(
-        OCR_TO_TRANSLATION
-      ).find(
-        ([, translationCode]) =>
-          translationCode ===
-          targetLanguage
-      )?.[0] as
-        | Language
-        | undefined;
-
-    if (newSourceLanguage) {
-      setSourceLanguage(
-        newSourceLanguage
-      );
-
-      setTargetLanguage(
-        currentSource
-      );
-
-      setTranslation("");
-      setWordTranslations([]);
-    }
-  }
-
-  async function handleTranslate(
-    event: FormEvent
-  ) {
-    event.preventDefault();
-
-    if (!ocrText.trim()) {
-      setStatus(
-        "Please read an image first."
-      );
-      return;
-    }
-
-    setIsProcessing(true);
 
     try {
+      /*
+       * Step 1:
+       * OCR
+       */
+      const detectedText =
+        await performOCR(
+          selectedFile
+        );
+
+      if (!detectedText) {
+        setStatus(
+          "No readable text was detected in the image."
+        );
+        return;
+      }
+
+      setOcrText(
+        detectedText
+      );
+
+      /*
+       * Step 2:
+       * Translation
+       */
       await translateText(
-        ocrText
+        detectedText
       );
 
       setStatus(
-        "Translation completed."
+        "Text detected and translated successfully."
       );
     } catch (error) {
       console.error(
-        "Translation error:",
+        "Read & Translate error:",
         error
       );
 
       setStatus(
         error instanceof Error
           ? error.message
-          : "Translation failed."
+          : "Unable to process the image."
       );
     } finally {
       setIsProcessing(false);
     }
   }
 
-  function getLanguageLabel(
-    language: Language
+  /*
+   * Speak arbitrary text.
+   */
+  function speakText(
+    text: string,
+    language: TranslationLanguage,
+    onStart?: () => void,
+    onEnd?: () => void
   ) {
-    return (
-      OCR_LANGUAGES.find(
-        (item) =>
-          item.value === language
-      )?.label ||
-      language
+    if (!text.trim()) {
+      return;
+    }
+
+    if (
+      !("speechSynthesis" in window)
+    ) {
+      setStatus(
+        "Text-to-speech is not supported by this browser."
+      );
+      return;
+    }
+
+    /*
+     * Stop previous speech.
+     */
+    window.speechSynthesis.cancel();
+
+    const utterance =
+      new SpeechSynthesisUtterance(
+        text.trim()
+      );
+
+    const ttsLanguage =
+      TTS_LANGUAGES[language];
+
+    utterance.lang =
+      ttsLanguage;
+
+    utterance.rate = 0.85;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    const voice =
+      getVoice(language);
+
+    if (voice) {
+      utterance.voice =
+        voice;
+
+      console.log(
+        `Using voice: ${voice.name} (${voice.lang})`
+      );
+    } else {
+      console.warn(
+        `No browser voice found for ${ttsLanguage}`
+      );
+    }
+
+    utterance.onstart = () => {
+      onStart?.();
+    };
+
+    utterance.onend = () => {
+      onEnd?.();
+    };
+
+    utterance.onerror = (
+      event
+    ) => {
+      console.error(
+        "Speech synthesis error:",
+        event
+      );
+
+      onEnd?.();
+
+      setStatus(
+        `Unable to read the text. Browser voice for ${ttsLanguage} may not be available.`
+      );
+    };
+
+    /*
+     * Small delay helps Chrome/Edge initialize
+     * the speech engine after cancel().
+     */
+    window.setTimeout(() => {
+      window.speechSynthesis.speak(
+        utterance
+      );
+    }, 100);
+  }
+
+  /*
+   * Read detected OCR text.
+   */
+  function speakSourceText() {
+    if (!ocrText.trim()) {
+      return;
+    }
+
+    const source =
+      OCR_TO_TRANSLATION[
+        sourceLanguage
+      ];
+
+    setIsSourceSpeaking(true);
+
+    speakText(
+      ocrText,
+      source,
+      () => {
+        setIsSourceSpeaking(true);
+
+        setStatus(
+          `Reading detected text in ${getLanguageLabel(
+            sourceLanguage
+          )}...`
+        );
+      },
+      () => {
+        setIsSourceSpeaking(false);
+      }
     );
   }
 
-  function getTargetLanguageLabel(
-    language: TranslationLanguage
-  ) {
-    return (
-      TRANSLATION_LANGUAGES.find(
-        (item) =>
-          item.value === language
-      )?.label ||
-      language
+  /*
+   * Stop detected-text speech.
+   */
+  function stopSourceText() {
+    if (
+      "speechSynthesis" in window
+    ) {
+      window.speechSynthesis.cancel();
+    }
+
+    setIsSourceSpeaking(false);
+  }
+
+  /*
+   * Read translated text.
+   */
+  function speakTranslation() {
+    if (!translation.trim()) {
+      return;
+    }
+
+    setIsTranslationSpeaking(true);
+
+    speakText(
+      translation,
+      targetLanguage,
+      () => {
+        setIsTranslationSpeaking(
+          true
+        );
+
+        setStatus(
+          `Reading translation in ${getTranslationLanguageLabel(
+            targetLanguage
+          )}...`
+        );
+      },
+      () => {
+        setIsTranslationSpeaking(
+          false
+        );
+      }
     );
   }
+
+  /*
+   * Read individual word.
+   */
+  function speakWord(
+    word: string,
+    language: TranslationLanguage
+  ) {
+    if (!word.trim()) {
+      return;
+    }
+
+    speakText(word, language);
+  }
+
+  /*
+   * Search a word's meaning.
+   */
+  function searchWordMeaning(
+    word: string
+  ) {
+    const cleanWord =
+      word.trim();
+
+    if (!cleanWord) {
+      return;
+    }
+
+    const searchUrl =
+      `https://www.google.com/search?q=${encodeURIComponent(
+        `${cleanWord} meaning`
+      )}`;
+
+    window.open(
+      searchUrl,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }
+
+  /*
+   * Swap source and target languages.
+   */
+  function swapLanguages() {
+    const newSource =
+      targetLanguage;
+
+    const newTarget =
+      OCR_TO_TRANSLATION[
+        sourceLanguage
+      ];
+
+    /*
+     * Only supported OCR languages
+     * can become source languages.
+     */
+    const matchingOCRLanguage =
+      LANGUAGES.find(
+        (language) =>
+          OCR_TO_TRANSLATION[
+            language.code
+          ] === newSource
+      );
+
+    if (!matchingOCRLanguage) {
+      setStatus(
+        "This language cannot currently be selected as an OCR source."
+      );
+      return;
+    }
+
+    setSourceLanguage(
+      matchingOCRLanguage.code
+    );
+
+    setTargetLanguage(
+      newTarget
+    );
+
+    setOcrText("");
+    setTranslation("");
+    setWordTranslations([]);
+
+    setStatus(
+      `Language direction changed to ${getLanguageLabel(
+        matchingOCRLanguage.code
+      )} → ${getTranslationLanguageLabel(
+        newTarget
+      )}.`
+    );
+  }
+
+  const sourceTranslationLanguage =
+    OCR_TO_TRANSLATION[
+      sourceLanguage
+    ];
 
   return (
     <div className="app">
-
       <header className="app-header">
-        <div>
+        <div className="container">
           <h1>
-            Multilingual Document Translator
+            Multilingual Image Translator
           </h1>
 
           <p>
-            Extract text from images and
-            translate it into Indian
-            languages.
+            Read and translate English,
+            Hindi, Tamil, Telugu and
+            Kannada text from images.
           </p>
         </div>
       </header>
 
       <main className="container">
-
-        {/* Language Settings */}
-        <section className="card controls-card">
-
+        <section className="card">
           <h2>
-            Translation Settings
+            1. Select Languages
           </h2>
 
           <div className="language-controls">
-
             <div className="field">
-
               <label htmlFor="source-language">
-                Source Language
+                Source language
               </label>
 
               <select
                 id="source-language"
                 value={sourceLanguage}
                 onChange={(event) => {
-                  const language =
-                    event.target
-                      .value as Language;
-
                   setSourceLanguage(
-                    language
+                    event.target.value as Language
                   );
 
-                  const sourceCode =
-                    OCR_TO_TRANSLATION[
-                      language
-                    ];
-
-                  if (
-                    sourceCode ===
-                    targetLanguage
-                  ) {
-                    setTargetLanguage(
-                      "en"
-                    );
-                  }
-
+                  setOcrText("");
                   setTranslation("");
                   setWordTranslations([]);
                 }}
-                disabled={isProcessing}
               >
-                {OCR_LANGUAGES.map(
+                {LANGUAGES.map(
                   (language) => (
                     <option
-                      key={
-                        language.value
-                      }
-                      value={
-                        language.value
-                      }
+                      key={language.code}
+                      value={language.code}
                     >
                       {language.label}
                     </option>
                   )
                 )}
               </select>
-
             </div>
 
             <button
@@ -819,15 +926,14 @@ function App() {
               onClick={
                 swapLanguages
               }
-              disabled={isProcessing}
+              title="Swap languages"
             >
               ⇄
             </button>
 
             <div className="field">
-
               <label htmlFor="target-language">
-                Target Language
+                Target language
               </label>
 
               <select
@@ -835,110 +941,78 @@ function App() {
                 value={targetLanguage}
                 onChange={(event) => {
                   setTargetLanguage(
-                    event.target
-                      .value as TranslationLanguage
+                    event.target.value as TranslationLanguage
                   );
 
                   setTranslation("");
                   setWordTranslations([]);
                 }}
-                disabled={isProcessing}
               >
                 {TRANSLATION_LANGUAGES.map(
                   (language) => (
                     <option
-                      key={
-                        language.value
-                      }
-                      value={
-                        language.value
-                      }
+                      key={language.code}
+                      value={language.code}
                     >
                       {language.label}
                     </option>
                   )
                 )}
               </select>
-
             </div>
-
           </div>
-
         </section>
 
-        {/* Upload / Camera */}
         <section className="card">
-
           <h2>
-            Upload or Capture Image
+            2. Upload or Capture Image
           </h2>
-
-          <div className="action-buttons">
-
-            <button
-              type="button"
-              className="primary-button"
-              onClick={selectImage}
-              disabled={isProcessing}
-            >
-              Upload Image
-            </button>
-
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={
-                cameraOpen
-                  ? stopCamera
-                  : openCamera
-              }
-              disabled={isProcessing}
-            >
-              {cameraOpen
-                ? "Close Camera"
-                : "Open Camera"}
-            </button>
-
-            <button
-              type="button"
-              className="clear-button"
-              onClick={clearAll}
-              disabled={
-                isProcessing ||
-                (!imageUrl &&
-                  !ocrText &&
-                  !translation)
-              }
-            >
-              Clear
-            </button>
-
-          </div>
 
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={
-              handleImageUpload
+              handleFileChange
             }
             hidden
           />
 
-          {/* Camera */}
+          <div className="action-buttons">
+            <button
+              type="button"
+              className="primary-button"
+              onClick={
+                openFilePicker
+              }
+              disabled={isProcessing}
+            >
+              📁 Upload Image
+            </button>
+
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={
+                openCamera
+              }
+              disabled={isProcessing}
+            >
+              📷 Use Camera
+            </button>
+          </div>
+
           {cameraOpen && (
             <div className="camera-container">
-
               <video
                 ref={videoRef}
+                className="camera-video"
                 autoPlay
                 playsInline
                 muted
-                className="camera-video"
               />
 
               <div className="camera-actions">
-
                 <button
                   type="button"
                   className="primary-button"
@@ -946,21 +1020,19 @@ function App() {
                     captureImage
                   }
                 >
-                  Capture Image
+                  📸 Capture
                 </button>
 
                 <button
                   type="button"
                   className="secondary-button"
                   onClick={
-                    stopCamera
+                    closeCamera
                   }
                 >
-                  Cancel
+                  ✕ Close
                 </button>
-
               </div>
-
             </div>
           )}
 
@@ -969,257 +1041,275 @@ function App() {
             hidden
           />
 
-          {/* Image Preview */}
-          {imageUrl &&
-            !cameraOpen && (
-              <div className="image-preview">
-
-                <h3>
-                  Image Preview
-                </h3>
-
-                <img
-                  src={imageUrl}
-                  alt="Uploaded document"
-                />
-
-              </div>
-            )}
-
-          {/* Read & Translate */}
-          {selectedFile && (
-            <div className="read-translate-container">
-
-              <button
-                type="button"
-                className="read-translate-button"
-                onClick={
-                  handleReadAndTranslate
-                }
-                disabled={
-                  isProcessing
-                }
-              >
-                {isProcessing
-                  ? "Reading & Translating..."
-                  : "▶ Read & Translate"}
-              </button>
-
+          {imageUrl && (
+            <div className="image-preview">
+              <img
+                src={imageUrl}
+                alt="Selected document"
+              />
             </div>
           )}
 
+          {selectedFile && (
+            <div className="selected-file">
+              <strong>
+                Selected:
+              </strong>{" "}
+              {selectedFile.name}
+            </div>
+          )}
+
+          <form
+            onSubmit={
+              handleReadAndTranslate
+            }
+          >
+            <button
+              type="submit"
+              className="read-translate-button"
+              disabled={
+                !selectedFile ||
+                isProcessing
+              }
+            >
+              {isProcessing
+                ? "⏳ Processing..."
+                : "▶ Read & Translate"}
+            </button>
+          </form>
+
+          {status && (
+            <div className="status">
+              {isProcessing && (
+                <span className="spinner" />
+              )}
+
+              <span>
+                {status}
+              </span>
+            </div>
+          )}
         </section>
 
-        {/* Status */}
-        {status && (
-          <div className="status">
+        {(ocrText ||
+          translation ||
+          wordTranslations.length >
+            0) && (
+          <section className="results">
+            <div className="card result-card">
+              <div className="result-heading">
+                <h2>
+                  Detected Text
+                </h2>
 
-            {isProcessing && (
-              <span className="spinner" />
-            )}
+                {ocrText && (
+                  <div className="tts-controls">
+                    <button
+                      type="button"
+                      className="tts-start-button"
+                      onClick={
+                        speakSourceText
+                      }
+                      disabled={
+                        isSourceSpeaking
+                      }
+                    >
+                      ▶ Start
+                    </button>
 
-            <span>
-              {status}
-            </span>
+                    <button
+                      type="button"
+                      className="tts-stop-button"
+                      onClick={
+                        stopSourceText
+                      }
+                      disabled={
+                        !isSourceSpeaking
+                      }
+                    >
+                      ■ Stop
+                    </button>
+                  </div>
+                )}
+              </div>
 
-          </div>
-        )}
-
-        {/* Results */}
-        <section className="results">
-
-          {/* Detected Text */}
-          <article className="card">
-
-            <div className="result-heading">
-
-              <h2>
-                Detected Text
-              </h2>
+              <textarea
+                value={ocrText}
+                readOnly
+                rows={14}
+                placeholder="Detected text will appear here..."
+              />
 
               {ocrText && (
-                <button
-                  type="button"
-                  className="tts-button"
-                  onClick={
-                    speakSourceText
-                  }
-                >
-                  🔊 Read
-                </button>
-              )}
+                <div className="word-section">
+                  <h3>
+                    Source Words
+                  </h3>
 
-            </div>
-
-            <textarea
-              value={ocrText}
-              readOnly
-              placeholder="OCR text will appear here."
-              rows={7}
-            />
-
-            {ocrText && (
-              <div className="result-info">
-
-                Detected from{" "}
-
-                <strong>
-                  {getLanguageLabel(
-                    sourceLanguage
-                  )}
-                </strong>
-
-              </div>
-            )}
-
-          </article>
-
-          {/* Translation */}
-          <article className="card">
-
-            <div className="result-heading">
-
-              <h2>
-                Translation
-              </h2>
-
-              {translation && (
-                <button
-                  type="button"
-                  className="tts-button"
-                  onClick={
-                    speakTranslation
-                  }
-                >
-                  🔊 Read
-                </button>
-              )}
-
-            </div>
-
-            <textarea
-              value={translation}
-              readOnly
-              placeholder="Translated text will appear here."
-              rows={7}
-            />
-
-            {translation && (
-              <div className="result-info">
-
-                Translated to{" "}
-
-                <strong>
-                  {getTargetLanguageLabel(
-                    targetLanguage
-                  )}
-                </strong>
-
-              </div>
-            )}
-
-            {/* Word by Word */}
-            {wordTranslations.length >
-              0 && (
-              <div className="word-translation">
-
-                <h3>
-                  Word-by-Word
-                </h3>
-
-                <div className="word-line">
-
-                  {wordTranslations.map(
-                    (
-                      item,
-                      index
-                    ) => (
-                      <span
-                        className="word-pair"
-                        key={`${item.source}-${index}`}
-                      >
-
-                        <span className="source-word">
-                          {item.source}
-                        </span>
-
-                        <button
-                          type="button"
-                          className="word-tts-button"
-                          onClick={() =>
-                            speakWord(
-                              item.source,
-                              OCR_TO_TRANSLATION[
-                                sourceLanguage
-                              ]
-                            )
-                          }
-                          title={`Hear ${item.source}`}
+                  <div className="word-line">
+                    {getWords(
+                      ocrText
+                    ).map(
+                      (
+                        word,
+                        index
+                      ) => (
+                        <div
+                          className="word-pair"
+                          key={`${word}-${index}`}
                         >
-                          🔊
-                        </button>
+                          <button
+                            type="button"
+                            className="word-link"
+                            onClick={() =>
+                              searchWordMeaning(
+                                word
+                              )
+                            }
+                            title="Search meaning"
+                          >
+                            {word}
+                          </button>
 
-                        <span className="arrow">
-                          →
-                        </span>
-
-                        <span className="target-word">
-                          {item.target}
-                        </span>
-
-                        <button
-                          type="button"
-                          className="word-tts-button"
-                          onClick={() =>
-                            speakWord(
-                              item.target,
-                              targetLanguage
-                            )
-                          }
-                          title={`Hear ${item.target}`}
-                        >
-                          🔊
-                        </button>
-
-                      </span>
-                    )
-                  )}
-
+                          <button
+                            type="button"
+                            className="word-tts-button"
+                            onClick={() =>
+                              speakWord(
+                                word,
+                                sourceTranslationLanguage
+                              )
+                            }
+                            title={`Listen to ${word}`}
+                          >
+                            🔊
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
+              )}
+            </div>
 
+            <div className="card result-card">
+              <div className="result-heading">
+                <h2>
+                  Translation
+                </h2>
+
+                {translation && (
+                  <button
+                    type="button"
+                    className="translation-read-button"
+                    onClick={
+                      speakTranslation
+                    }
+                    disabled={
+                      isTranslationSpeaking
+                    }
+                  >
+                    🔊 Read
+                  </button>
+                )}
               </div>
-            )}
 
-            {/* Translate Again */}
-            {ocrText && (
-              <form
-                onSubmit={
-                  handleTranslate
-                }
-                className="translate-form"
-              >
+              <textarea
+                value={translation}
+                readOnly
+                rows={14}
+                placeholder="Translation will appear here..."
+              />
 
-                <button
-                  type="submit"
-                  className="primary-button"
-                  disabled={
-                    isProcessing
-                  }
-                >
-                  {isProcessing
-                    ? "Translating..."
-                    : "Translate Again"}
-                </button>
+              {wordTranslations.length >
+                0 && (
+                <div className="word-section">
+                  <h3>
+                    Word-by-Word
+                    Translation
+                  </h3>
 
-              </form>
-            )}
+                  <div className="word-line">
+                    {wordTranslations.map(
+                      (
+                        item,
+                        index
+                      ) => (
+                        <div
+                          className="word-pair"
+                          key={`${item.source}-${index}`}
+                        >
+                          <button
+                            type="button"
+                            className="word-link"
+                            onClick={() =>
+                              searchWordMeaning(
+                                item.source
+                              )
+                            }
+                            title="Search source word meaning"
+                          >
+                            {
+                              item.source
+                            }
+                          </button>
 
-          </article>
+                          <button
+                            type="button"
+                            className="word-tts-button"
+                            onClick={() =>
+                              speakWord(
+                                item.source,
+                                sourceTranslationLanguage
+                              )
+                            }
+                            title={`Listen to ${item.source}`}
+                          >
+                            🔊
+                          </button>
 
-        </section>
+                          <span className="arrow">
+                            →
+                          </span>
 
+                          <button
+                            type="button"
+                            className="word-link target-word-link"
+                            onClick={() =>
+                              searchWordMeaning(
+                                item.target
+                              )
+                            }
+                            title="Search target word meaning"
+                          >
+                            {
+                              item.target
+                            }
+                          </button>
+
+                          <button
+                            type="button"
+                            className="word-tts-button"
+                            onClick={() =>
+                              speakWord(
+                                item.target,
+                                targetLanguage
+                              )
+                            }
+                            title={`Listen to ${item.target}`}
+                          >
+                            🔊
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
       </main>
-
     </div>
   );
 }
