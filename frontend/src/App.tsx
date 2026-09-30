@@ -158,6 +158,12 @@ function App() {
   const [collapsedGroups, setCollapsedGroups] =
     useState<Set<string>>(new Set());
 
+  const [sourceWordsOpen, setSourceWordsOpen] =
+    useState<boolean>(true);
+
+  const [translatedWordsOpen, setTranslatedWordsOpen] =
+    useState<boolean>(true);
+
   const clientIdRef =
     useRef<string>("");
 
@@ -1645,10 +1651,37 @@ function App() {
 
               {ocrText && (
                 <div className="word-section">
-                  <h3>
-                    Source Words
-                  </h3>
+                  <button
+                    type="button"
+                    className="word-section-toggle"
+                    onClick={() =>
+                      setSourceWordsOpen(
+                        (open) => !open
+                      )
+                    }
+                    aria-expanded={
+                      sourceWordsOpen
+                    }
+                  >
+                    <span className="word-section-caret">
+                      {sourceWordsOpen
+                        ? "▾"
+                        : "▸"}
+                    </span>
 
+                    <h3>
+                      Source Words
+                    </h3>
+
+                    <span className="word-section-count">
+                      {
+                        getWords(ocrText)
+                          .length
+                      }
+                    </span>
+                  </button>
+
+                  {sourceWordsOpen && (
                   <div className="word-line">
                     {getWords(
                       ocrText
@@ -1698,6 +1731,7 @@ function App() {
                       )
                     )}
                   </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1734,11 +1768,37 @@ function App() {
               {wordTranslations.length >
                 0 && (
                 <div className="word-section">
-                  <h3>
-                    Word-by-Word
-                    Translation
-                  </h3>
+                  <button
+                    type="button"
+                    className="word-section-toggle"
+                    onClick={() =>
+                      setTranslatedWordsOpen(
+                        (open) => !open
+                      )
+                    }
+                    aria-expanded={
+                      translatedWordsOpen
+                    }
+                  >
+                    <span className="word-section-caret">
+                      {translatedWordsOpen
+                        ? "▾"
+                        : "▸"}
+                    </span>
 
+                    <h3>
+                      Word-by-Word
+                      Translation
+                    </h3>
+
+                    <span className="word-section-count">
+                      {
+                        wordTranslations.length
+                      }
+                    </span>
+                  </button>
+
+                  {translatedWordsOpen && (
                   <div className="word-line">
                     {wordTranslations.map(
                       (
@@ -1831,6 +1891,7 @@ function App() {
                       )
                     )}
                   </div>
+                  )}
                 </div>
               )}
             </div>

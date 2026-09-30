@@ -939,6 +939,71 @@ button:disabled {
    WORD TRANSLATION
 ========================= */
 
+.word-section {
+  margin-top: 20px;
+
+  padding-top: 16px;
+
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Clickable header that expands/collapses a word section. */
+.word-section-toggle {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  width: 100%;
+
+  margin-bottom: 12px;
+
+  padding: 0;
+
+  border: none;
+
+  background: transparent;
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.word-section-toggle h3 {
+  margin: 0;
+
+  font-size: 18px;
+}
+
+.word-section-caret {
+  font-size: 12px;
+
+  width: 12px;
+
+  color: #6b7280;
+}
+
+.word-section-count {
+  margin-left: auto;
+
+  background: #e5e7eb;
+
+  color: #374151;
+
+  border-radius: 999px;
+
+  padding: 1px 9px;
+
+  font-size: 12px;
+
+  font-weight: 700;
+}
+
+.word-section-toggle:hover .word-section-count {
+  background: #d1d5db;
+}
+
 .word-translation {
   margin-top: 20px;
 
