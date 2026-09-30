@@ -48,13 +48,27 @@ button:disabled {
 
   color: white;
 
-  padding: 24px 20px;
+  padding: 18px 20px;
+}
+
+.app-header .nav {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 16px;
+}
+
+.nav-brand {
+  min-width: 0;
 }
 
 .app-header h1 {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .app-header p {
@@ -62,7 +76,130 @@ button:disabled {
 
   color: #d1d5db;
 
+  font-size: 14px;
+}
+
+/* =========================
+   NAV BOOKMARKS
+========================= */
+
+.nav-actions {
+  position: relative;
+
+  flex-shrink: 0;
+}
+
+.nav-bookmarks-button {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 9px 14px;
+
+  border: 1px solid #374151;
+
+  border-radius: 8px;
+
+  background: #111827;
+
+  color: #fbbf24;
+
   font-size: 15px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.nav-bookmarks-button:hover,
+.nav-bookmarks-button.is-open {
+  background: #374151;
+}
+
+.nav-bookmarks-count {
+  background: #fbbf24;
+
+  color: #78350f;
+
+  border-radius: 999px;
+
+  padding: 1px 8px;
+
+  font-size: 12px;
+
+  font-weight: 700;
+}
+
+.bookmarks-panel {
+  position: absolute;
+
+  right: 0;
+
+  top: calc(100% + 8px);
+
+  z-index: 20;
+
+  width: 340px;
+
+  max-width: 90vw;
+
+  max-height: 70vh;
+
+  overflow-y: auto;
+
+  padding: 16px;
+
+  background: white;
+
+  color: #111827;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 12px;
+
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.bookmarks-panel-header {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  margin-bottom: 8px;
+}
+
+.bookmarks-panel-header h2 {
+  margin: 0;
+
+  font-size: 18px;
+
+  color: #b45309;
+}
+
+.bookmarks-panel-close {
+  border: none;
+
+  background: transparent;
+
+  font-size: 16px;
+
+  line-height: 1;
+
+  color: #6b7280;
+
+  cursor: pointer;
+}
+
+.bookmarks-empty {
+  margin: 8px 0 0;
+
+  color: #6b7280;
+
+  font-size: 14px;
 }
 
 /* =========================
@@ -392,22 +529,14 @@ button:disabled {
   display: grid;
 
   grid-template-columns:
-    minmax(0, 1fr)
-    minmax(0, 1fr)
-    300px;
-
-  gap: 24px;
-
-  align-items: start;
-}
-
-/* When there is no sidebar the section only has the two result cards. */
-.results:not(:has(.bookmarks-sidebar)) {
-  grid-template-columns:
     repeat(
       2,
       minmax(0, 1fr)
     );
+
+  gap: 24px;
+
+  align-items: start;
 }
 
 .results .card {
@@ -417,26 +546,8 @@ button:disabled {
 }
 
 /* =========================
-   BOOKMARKS SIDEBAR
+   BOOKMARK GROUPS (nav dropdown)
 ========================= */
-
-.bookmarks-sidebar {
-  position: sticky;
-
-  top: 16px;
-
-  align-self: start;
-
-  max-height: calc(100vh - 32px);
-
-  overflow-y: auto;
-}
-
-.bookmarks-sidebar h2 {
-  margin-top: 0;
-
-  color: #b45309;
-}
 
 .bookmark-group {
   margin-bottom: 16px;
@@ -783,26 +894,7 @@ button:disabled {
 ========================= */
 
 @media (max-width: 1100px) {
-  /* Cards side by side, sidebar drops to a full-width row below. */
-  .results,
-  .results:not(:has(.bookmarks-sidebar)) {
-    grid-template-columns:
-      minmax(0, 1fr)
-      minmax(0, 1fr);
-  }
-
-  .bookmarks-sidebar {
-    grid-column: 1 / -1;
-
-    position: static;
-
-    max-height: none;
-  }
-}
-
-@media (max-width: 900px) {
-  .results,
-  .results:not(:has(.bookmarks-sidebar)) {
+  .results {
     grid-template-columns: 1fr;
   }
 
