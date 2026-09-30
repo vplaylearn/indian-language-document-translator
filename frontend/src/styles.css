@@ -132,6 +132,16 @@ button:disabled {
   font-weight: 700;
 }
 
+.bookmarks-backdrop {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 15;
+
+  background: transparent;
+}
+
 .bookmarks-panel {
   position: absolute;
 
@@ -141,13 +151,15 @@ button:disabled {
 
   z-index: 20;
 
-  width: 340px;
+  display: flex;
+
+  flex-direction: column;
+
+  width: 360px;
 
   max-width: 90vw;
 
-  max-height: 70vh;
-
-  overflow-y: auto;
+  max-height: 78vh;
 
   padding: 16px;
 
@@ -160,6 +172,40 @@ button:disabled {
   border-radius: 12px;
 
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.bookmarks-panel-header,
+.bookmarks-search {
+  flex-shrink: 0;
+}
+
+.bookmarks-search {
+  width: 100%;
+
+  margin-bottom: 12px;
+
+  padding: 9px 12px;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 8px;
+
+  font-size: 14px;
+}
+
+.bookmarks-search:focus {
+  outline: none;
+
+  border-color: #2563eb;
+}
+
+/* Groups scroll; header and search stay pinned. */
+.bookmarks-panel > .bookmark-group {
+  overflow-y: auto;
+}
+
+.bookmarks-panel {
+  overflow-y: auto;
 }
 
 .bookmarks-panel-header {
@@ -558,17 +604,52 @@ button:disabled {
 
   align-items: center;
 
-  justify-content: space-between;
+  gap: 8px;
+
+  width: 100%;
 
   margin: 12px 0 8px;
 
+  padding: 6px 4px;
+
+  border: none;
+
+  background: transparent;
+
   font-size: 14px;
+
+  font-weight: 700;
 
   text-transform: uppercase;
 
   letter-spacing: 0.04em;
 
   color: #6b7280;
+
+  cursor: pointer;
+
+  position: sticky;
+
+  top: 0;
+
+  background: white;
+
+  z-index: 1;
+}
+
+.bookmark-group-title:hover {
+  color: #374151;
+}
+
+.bookmark-group-caret {
+  font-size: 11px;
+
+  width: 12px;
+}
+
+/* Count badge sits at the far right of the group header. */
+.bookmark-group-title .bookmark-count {
+  margin-left: auto;
 }
 
 .bookmark-count {
@@ -914,6 +995,44 @@ button:disabled {
 
   .camera-video {
     max-height: 400px;
+  }
+
+  /* Stack brand above the bookmarks button on tablets. */
+  .app-header .nav {
+    flex-wrap: wrap;
+  }
+
+  .nav-actions {
+    /* Not relative here, so the panel/sheet can anchor to the viewport. */
+    position: static;
+  }
+
+  /* Dim the page behind the sheet on small screens. */
+  .bookmarks-backdrop {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  /* Bookmarks become a bottom sheet instead of a floating dropdown. */
+  .bookmarks-panel {
+    position: fixed;
+
+    left: 0;
+
+    right: 0;
+
+    bottom: 0;
+
+    top: auto;
+
+    width: 100%;
+
+    max-width: 100%;
+
+    max-height: 80vh;
+
+    border-radius: 16px 16px 0 0;
+
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.25);
   }
 }
 

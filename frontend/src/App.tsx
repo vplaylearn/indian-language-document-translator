@@ -152,6 +152,12 @@ function App() {
   const [bookmarksOpen, setBookmarksOpen] =
     useState<boolean>(false);
 
+  const [bookmarkFilter, setBookmarkFilter] =
+    useState<string>("");
+
+  const [collapsedGroups, setCollapsedGroups] =
+    useState<Set<string>>(new Set());
+
   const clientIdRef =
     useRef<string>("");
 
@@ -195,6 +201,34 @@ function App() {
         console.error("Failed to load bookmarks:", error);
       });
   }, []);
+
+  /*
+   * Close the bookmarks panel on Escape.
+   */
+  useEffect(() => {
+    if (!bookmarksOpen) {
+      return;
+    }
+
+    function onKeyDown(
+      event: KeyboardEvent
+    ) {
+      if (event.key === "Escape") {
+        setBookmarksOpen(false);
+      }
+    }
+
+    window.addEventListener(
+      "keydown",
+      onKeyDown
+    );
+
+    return () =>
+      window.removeEventListener(
+        "keydown",
+        onKeyDown
+      );
+  }, [bookmarksOpen]);
 
   /*
    * Load browser speech voices.
@@ -1025,12 +1059,28 @@ function App() {
    * fall into an "Other" bucket.
    */
   const groupedBookmarks = (() => {
+    const query = bookmarkFilter
+      .trim()
+      .toLowerCase();
+
+    const filtered = query
+      ? bookmarks.filter(
+          (b) =>
+            b.source
+              .toLowerCase()
+              .includes(query) ||
+            b.target
+              .toLowerCase()
+              .includes(query)
+        )
+      : bookmarks;
+
     const groups = new Map<
       string,
       { lang: string; label: string; items: Bookmark[] }
     >();
 
-    for (const bookmark of bookmarks) {
+    for (const bookmark of filtered) {
       const lang = bookmark.sourceLang || "other";
       const label = bookmark.sourceLang
         ? getTranslationLanguageLabel(
@@ -1143,10 +1193,26 @@ function App() {
             </button>
 
             {bookmarksOpen && (
-              <div className="bookmarks-panel">
+              <div
+                className="bookmarks-backdrop"
+                onClick={() =>
+                  setBookmarksOpen(false)
+                }
+              />
+            )}
+
+            {bookmarksOpen && (
+              <div
+                className="bookmarks-panel"
+                role="dialog"
+                aria-label="Saved words"
+              >
                 <div className="bookmarks-panel-header">
                   <h2>
                     ★ Saved Words
+                    <span className="bookmark-count">
+                      {bookmarks.length}
+                    </span>
                   </h2>
 
                   <button
@@ -1163,12 +1229,32 @@ function App() {
                   </button>
                 </div>
 
+                {bookmarks.length > 0 && (
+                  <input
+                    type="search"
+                    className="bookmarks-search"
+                    placeholder="Search saved words..."
+                    value={bookmarkFilter}
+                    onChange={(event) =>
+                      setBookmarkFilter(
+                        event.target.value
+                      )
+                    }
+                  />
+                )}
+
                 {bookmarks.length ===
                 0 ? (
                   <p className="bookmarks-empty">
                     No saved words yet.
                     Tap the ☆ next to a
                     word to save it.
+                  </p>
+                ) : groupedBookmarks.length ===
+                  0 ? (
+                  <p className="bookmarks-empty">
+                    No words match "
+                    {bookmarkFilter}".
                   </p>
                 ) : (
                   groupedBookmarks.map(
@@ -1177,8 +1263,45 @@ function App() {
                         className="bookmark-group"
                         key={group.lang}
                       >
-                        <h3 className="bookmark-group-title">
+                        <button
+                          type="button"
+                          className="bookmark-group-title"
+                          onClick={() =>
+                            setCollapsedGroups(
+                              (prev) => {
+                                const next =
+                                  new Set(
+                                    prev
+                                  );
+                                if (
+                                  next.has(
+                                    group.lang
+                                  )
+                                ) {
+                                  next.delete(
+                                    group.lang
+                                  );
+                                } else {
+                                  next.add(
+                                    group.lang
+                                  );
+                                }
+                                return next;
+                              }
+                            )
+                          }
+                        >
+                          <span className="bookmark-group-caret">
+                            {collapsedGroups.has(
+                              group.lang
+                            ) &&
+                            !bookmarkFilter.trim()
+                              ? "▸"
+                              : "▾"}
+                          </span>
+
                           {group.label}
+
                           <span className="bookmark-count">
                             {
                               group
@@ -1186,8 +1309,12 @@ function App() {
                                 .length
                             }
                           </span>
-                        </h3>
+                        </button>
 
+                        {(!collapsedGroups.has(
+                          group.lang
+                        ) ||
+                          bookmarkFilter.trim()) && (
                         <div className="bookmark-list">
                           {group.items.map(
                             (
@@ -1243,6 +1370,7 @@ function App() {
                             )
                           )}
                         </div>
+                        )}
                       </div>
                     )
                   )
