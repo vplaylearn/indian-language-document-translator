@@ -1562,6 +1562,7 @@ function App() {
           )}
 
           <form
+            className="read-translate-container"
             onSubmit={
               handleReadAndTranslate
             }

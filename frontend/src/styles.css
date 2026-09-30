@@ -421,17 +421,29 @@ button:disabled {
 
   flex-wrap: wrap;
 
-  gap: 10px;
+  gap: 12px;
 }
 
 .primary-button,
 .secondary-button,
 .clear-button {
+  flex: 1 1 200px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 8px;
+
   border: none;
 
-  border-radius: 7px;
+  border-radius: 8px;
 
-  padding: 10px 16px;
+  padding: 12px 18px;
+
+  font-size: 15px;
 
   font-weight: 600;
 }
@@ -471,7 +483,7 @@ button:disabled {
 ========================= */
 
 .read-translate-container {
-  margin-top: 22px;
+  margin-top: 20px;
 
   display: flex;
 
@@ -485,7 +497,9 @@ button:disabled {
 
   justify-content: center;
 
-  min-width: 240px;
+  width: 100%;
+
+  max-width: 360px;
 
   padding: 14px 24px;
 
@@ -544,6 +558,32 @@ button:disabled {
   border-radius: 8px;
 
   background: #f8fafc;
+}
+
+/* =========================
+   SELECTED FILE
+========================= */
+
+.selected-file {
+  margin-top: 14px;
+
+  padding: 10px 14px;
+
+  background: #f1f5f9;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 8px;
+
+  font-size: 14px;
+
+  color: #334155;
+
+  word-break: break-all;
+}
+
+.selected-file strong {
+  color: #0f172a;
 }
 
 /* =========================
