@@ -78,3 +78,35 @@ The app calls a LibreTranslate-compatible `/translate` endpoint. If you use anot
 
 ## Notes
 OCR quality depends on scan quality, font, rotation, and language model. For mixed-language documents, select a primary language or use auto-detection.
+
+## Deploying to Vercel (single project)
+
+This repo is configured to deploy as one Vercel project with the Vite app and
+serverless functions together. In Vercel, set the project **Root Directory** to
+`frontend`. Configuration lives in `frontend/vercel.json`.
+
+Serverless functions (in `frontend/api/`):
+- `POST /api/translate` — text translation via MyMemory (no key required).
+- `/api/bookmarks` — saved words, backed by MongoDB (`GET`/`POST`/`DELETE`).
+
+### Environment variables
+
+The bookmark feature needs MongoDB. Set these in
+**Vercel > Project > Settings > Environment Variables** (see
+`frontend/.env.example`):
+
+| Variable | Required | Default | Purpose |
+| --- | --- | --- | --- |
+| `MONGODB_URI` | yes | — | MongoDB connection string (e.g. Atlas). |
+| `MONGODB_DB` | no | `indian_translator` | Database name. |
+| `MONGODB_BOOKMARKS_COLLECTION` | no | `bookmarks` | Collection name. |
+
+Translation works without any environment variables; only bookmarks require
+`MONGODB_URI`.
+
+## Bookmarks
+
+Click the ☆ star next to a word-by-word pair to save it; click ★ to remove it.
+Saved words appear in the "Saved Words" list and persist in MongoDB. Bookmarks
+are scoped per browser via a random client id kept in `localStorage` (the app
+has no login).

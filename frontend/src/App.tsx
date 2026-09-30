@@ -6,6 +6,14 @@ import {
   useState,
 } from "react";
 import { createWorker, PSM } from "tesseract.js";
+import {
+  addBookmark,
+  bookmarkKey,
+  fetchBookmarks,
+  getClientId,
+  removeBookmark,
+  type Bookmark,
+} from "./bookmarks";
 import "./styles.css";
 
 type Language = "eng" | "hin" | "tam" | "tel" | "kan";
@@ -135,6 +143,15 @@ function App() {
   const [isTranslationSpeaking, setIsTranslationSpeaking] =
     useState<boolean>(false);
 
+  const [bookmarks, setBookmarks] =
+    useState<Bookmark[]>([]);
+
+  const [bookmarkBusy, setBookmarkBusy] =
+    useState<Set<string>>(new Set());
+
+  const clientIdRef =
+    useRef<string>("");
+
   const fileInputRef =
     useRef<HTMLInputElement | null>(null);
 
@@ -162,6 +179,19 @@ function App() {
       }
     };
   }, [imageUrl]);
+
+  /*
+   * Load this browser's saved bookmarks once on mount.
+   */
+  useEffect(() => {
+    clientIdRef.current = getClientId();
+
+    fetchBookmarks(clientIdRef.current)
+      .then(setBookmarks)
+      .catch((error) => {
+        console.error("Failed to load bookmarks:", error);
+      });
+  }, []);
 
   /*
    * Load browser speech voices.
@@ -771,6 +801,120 @@ function App() {
   }
 
   /*
+   * Bookmark helpers.
+   */
+  function findBookmark(
+    source: string,
+    target: string,
+    sourceLang: string,
+    targetLang: string
+  ): Bookmark | undefined {
+    const key = bookmarkKey({
+      source,
+      target,
+      sourceLang,
+      targetLang,
+    });
+
+    return bookmarks.find(
+      (b) =>
+        bookmarkKey(b) === key
+    );
+  }
+
+  async function toggleBookmark(
+    source: string,
+    target: string,
+    sourceLang: string,
+    targetLang: string
+  ) {
+    const clientId =
+      clientIdRef.current;
+
+    if (!clientId) {
+      return;
+    }
+
+    const key = bookmarkKey({
+      source,
+      target,
+      sourceLang,
+      targetLang,
+    });
+
+    // Ignore rapid double-clicks on the same word while a request is in flight.
+    if (bookmarkBusy.has(key)) {
+      return;
+    }
+
+    setBookmarkBusy((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+
+    const existing = findBookmark(
+      source,
+      target,
+      sourceLang,
+      targetLang
+    );
+
+    try {
+      if (existing) {
+        await removeBookmark(
+          clientId,
+          existing.id
+        );
+
+        setBookmarks((prev) =>
+          prev.filter(
+            (b) => b.id !== existing.id
+          )
+        );
+      } else {
+        const saved = await addBookmark(
+          clientId,
+          {
+            source,
+            target,
+            sourceLang,
+            targetLang,
+          }
+        );
+
+        if (saved) {
+          setBookmarks((prev) =>
+            // Guard against a duplicate the server may return.
+            prev.some(
+              (b) => b.id === saved.id
+            )
+              ? prev
+              : [saved, ...prev]
+          );
+        }
+      }
+    } catch (error) {
+      console.error(
+        "Bookmark toggle failed:",
+        error
+      );
+
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "Could not update bookmark."
+      );
+    } finally {
+      setBookmarkBusy((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }
+
+  /*
    * Read individual word.
    */
   function speakWord(
@@ -871,6 +1015,60 @@ function App() {
     OCR_TO_TRANSLATION[
       sourceLanguage
     ];
+
+  /*
+   * Star button that toggles a bookmark for a source/target word pair.
+   */
+  function renderStar(
+    source: string,
+    target: string,
+    sourceLang: string,
+    targetLang: string
+  ) {
+    const saved = Boolean(
+      findBookmark(
+        source,
+        target,
+        sourceLang,
+        targetLang
+      )
+    );
+
+    const busy = bookmarkBusy.has(
+      bookmarkKey({
+        source,
+        target,
+        sourceLang,
+        targetLang,
+      })
+    );
+
+    return (
+      <button
+        type="button"
+        className={`word-star${
+          saved ? " is-saved" : ""
+        }`}
+        onClick={() =>
+          toggleBookmark(
+            source,
+            target,
+            sourceLang,
+            targetLang
+          )
+        }
+        disabled={busy}
+        aria-pressed={saved}
+        title={
+          saved
+            ? "Remove bookmark"
+            : "Bookmark this word"
+        }
+      >
+        {saved ? "★" : "☆"}
+      </button>
+    );
+  }
 
   return (
     <div className="app">
@@ -1315,6 +1513,69 @@ function App() {
                             title={`Listen to ${item.target}`}
                           >
                             🔊
+                          </button>
+
+                          {renderStar(
+                            item.source,
+                            item.target,
+                            sourceTranslationLanguage,
+                            targetLanguage
+                          )}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {bookmarks.length > 0 && (
+                <div className="word-section saved-words">
+                  <h3>
+                    ★ Saved Words
+                  </h3>
+
+                  <div className="word-line">
+                    {bookmarks.map(
+                      (bookmark) => (
+                        <div
+                          className="word-pair saved-word-pair"
+                          key={bookmark.id}
+                        >
+                          <span className="word-link">
+                            {
+                              bookmark.source
+                            }
+                          </span>
+
+                          <span className="arrow">
+                            →
+                          </span>
+
+                          <span className="word-link target-word-link">
+                            {
+                              bookmark.target
+                            }
+                          </span>
+
+                          <button
+                            type="button"
+                            className="word-star is-saved"
+                            onClick={() =>
+                              toggleBookmark(
+                                bookmark.source,
+                                bookmark.target,
+                                bookmark.sourceLang,
+                                bookmark.targetLang
+                              )
+                            }
+                            disabled={bookmarkBusy.has(
+                              bookmarkKey(
+                                bookmark
+                              )
+                            )}
+                            title="Remove bookmark"
+                          >
+                            ★
                           </button>
                         </div>
                       )

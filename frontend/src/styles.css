@@ -775,3 +775,53 @@ button:disabled {
     font-size: 14px;
   }
 }
+
+/* =========================
+   BOOKMARK STAR
+========================= */
+
+.word-star {
+  border: none;
+
+  background: transparent;
+
+  padding: 2px;
+
+  font-size: 16px;
+
+  line-height: 1;
+
+  color: #f59e0b;
+
+  cursor: pointer;
+
+  transition: transform 0.1s ease;
+}
+
+.word-star:hover:not(:disabled) {
+  transform: scale(1.2);
+}
+
+.word-star.is-saved {
+  color: #f59e0b;
+}
+
+.word-star:disabled {
+  opacity: 0.5;
+
+  cursor: default;
+}
+
+/* =========================
+   SAVED WORDS
+========================= */
+
+.saved-words h3 {
+  color: #b45309;
+}
+
+.saved-word-pair {
+  background: #fffbeb;
+
+  border-color: #fde68a;
+}

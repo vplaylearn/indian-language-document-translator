@@ -6,3 +6,9 @@ frontend/dist/
 backend/node_modules/
 *.pyc
 .DS_Store
+
+# Environment files (keep .env.example tracked)
+.env
+.env.local
+.env.*.local
+frontend/.env
